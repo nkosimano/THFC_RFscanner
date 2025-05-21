@@ -3,8 +3,12 @@ import { createClient } from '@supabase/supabase-js';
 import { AuthState } from '../types';
 
 // Initialize Supabase client
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error('Missing Supabase environment variables. Please check your .env file.');
+}
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
@@ -24,7 +28,6 @@ interface ProfileData {
   full_name: string;
   role: 'field_worker' | 'admin';
   user_code: string;
-
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -106,12 +109,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
-    // 1. Log the inputs to see exactly what's being passed to Supabase
-    console.log("[AUTH DEBUG] Attempting login with email:", email);
-    // WARNING: Be cautious about logging passwords in a way that could be exposed.
-    // This is for local debugging only. Remove or comment out before committing to version control or deploying.
-    // console.log("[AUTH DEBUG] Attempting login with password:", password); 
-
     try {
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
@@ -119,32 +116,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
 
       if (signInError) {
-        // 2. Log the detailed error object from Supabase
-        console.error("[AUTH DEBUG] Supabase signInWithPassword error object:", signInError);
-        // You can inspect all properties of signInError, e.g.:
-        // console.error("[AUTH DEBUG] Error message:", signInError.message);
-        // console.error("[AUTH DEBUG] Error status:", signInError.status);
-        // console.error("[AUTH DEBUG] Error name:", signInError.name);
-        throw signInError; // Re-throw the original error
+        throw signInError;
       }
 
-      // 3. Log success (optional, but good for confirming flow)
-      console.log("[AUTH DEBUG] Supabase signInWithPassword success. User data:", data.user);
-      console.log("[AUTH DEBUG] Supabase signInWithPassword success. Session data:", data.session);
-      // The onAuthStateChange listener will handle setting the user state.
-
-    } catch (error: any) { // Catching the re-thrown error or any other synchronous error
-      // The error logged here will be the one from Supabase if it occurred there
-      console.error("[AUTH DEBUG] Error caught in login function's catch block:", error);
+    } catch (error: any) {
       setState(prev => ({
         ...prev,
         isLoading: false,
-        // Use the message from the actual error object
-        error: error.message || 'Login failed. Please check your credentials and Supabase logs.'
+        error: error.message || 'Login failed. Please check your credentials.'
       }));
-      // It's good practice to let the calling component know about the error,
-      // which you do by re-throwing or by how your UI handles the promise returned by login.
-      // throw error; // You might already have this or handle it differently.
     }
   };
   
@@ -180,7 +160,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             email,
             role: userData.role,
             user_code: userCode,
-  
             is_active: true
           }
         ]);
