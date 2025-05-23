@@ -41,12 +41,34 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Auth provider component
+const DISABLE_AUTH = import.meta.env.VITE_DISABLE_AUTH === 'true';
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, setState] = useState<AuthState>(initialState);
 
-  // Check for existing session on mount
+  // Auth bypass for testing
   useEffect(() => {
     setState(prev => ({ ...prev, isLoading: true }));
+    
+    if (DISABLE_AUTH) {
+      setState({
+        isAuthenticated: true,
+        user: {
+          id: 'mock-user-id',
+          email: 'mock@example.com',
+          fullName: 'Mock User',
+          role: 'admin', // Change to 'field_worker' if needed
+          userCode: 'MOCK01',
+          isActive: true,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        isLoading: false,
+        error: null,
+        session: null,
+      });
+      return;
+    }
     
     // Check active sessions and set the user
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -142,9 +164,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Use the message from the actual error object
         error: error.message || 'Login failed. Please check your credentials and Supabase logs.'
       }));
-      // It's good practice to let the calling component know about the error,
-      // which you do by re-throwing or by how your UI handles the promise returned by login.
-      // throw error; // You might already have this or handle it differently.
+      // Rethrow the error so the component can handle it
+      throw error;
     }
   };
   
@@ -186,6 +207,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ]);
       
       if (userInsertError) throw userInsertError;
+      
+      // Set loading to false after successful signup
+      setState(prev => ({ ...prev, isLoading: false }));
       
     } catch (error: any) {
       setState(prev => ({

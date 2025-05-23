@@ -15,26 +15,39 @@ const SignUpForm: React.FC = () => {
     e.preventDefault();
     setFormError('');
     setSuccess('');
+    
+    // Form validation
     if (!email.trim()) {
       setFormError('Email is required');
       return;
     }
+    
     if (!password.trim()) {
       setFormError('Password is required');
       return;
     }
+    
+    // Basic password strength validation
+    if (password.length < 8) {
+      setFormError('Password must be at least 8 characters long');
+      return;
+    }
+    
     if (!fullName.trim()) {
       setFormError('Full name is required');
       return;
     }
+    
     try {
       await signUp(email, password, { fullName, role });
       setSuccess('Account created! Please check your email to verify your account.');
+      // Clear form on success
       setEmail('');
       setPassword('');
       setFullName('');
       setRole('field_worker');
     } catch (error: any) {
+      console.error('Sign up error:', error);
       setFormError(error?.message || 'An unexpected error occurred. Please try again.');
     }
   };
@@ -101,7 +114,11 @@ const SignUpForm: React.FC = () => {
         {success && (
           <div className="text-green-600 text-sm mt-2">{success}</div>
         )}
-        <button type="submit" className="bg-blue-600 text-white rounded px-4 py-2 mt-4 w-full hover:bg-blue-700 transition" disabled={state.isLoading}>
+        <button 
+          type="submit" 
+          className={`${state.isLoading ? 'bg-blue-500' : 'bg-blue-600 hover:bg-blue-700'} text-white rounded px-4 py-2 mt-4 w-full transition`} 
+          disabled={state.isLoading}
+        >
           {state.isLoading ? 'Creating account...' : 'Sign Up'}
         </button>
       </form>
