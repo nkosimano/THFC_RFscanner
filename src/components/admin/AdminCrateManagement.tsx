@@ -15,7 +15,7 @@ const AdminCrateManagement: React.FC = () => {
     setNewlyCreatedCrateId(null);
     try {
       const result = await createCrateInZoho(crateData);
-      setNewlyCreatedCrateId(result.crate_id);
+      setNewlyCreatedCrateId(result.data?.crate_id);
     } catch (e: any) {
       setError(e.message || 'Error creating crate');
     } finally {

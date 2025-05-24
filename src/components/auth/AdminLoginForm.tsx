@@ -18,7 +18,7 @@ const AdminDashboard: React.FC = () => {
           <div className="text-sm">
             <p><span className="font-medium">Email:</span> {user?.email}</p>
             <p><span className="font-medium">Role:</span> {user?.role}</p>
-            <p><span className="font-medium">User Code:</span> {user?.userCode}</p>
+
           </div>
         </div>
         
@@ -51,13 +51,21 @@ const AdminLoginForm: React.FC = () => {
 
     try {
       await login(email, password);
-    } catch (error: any) {
-      setFormError(error?.message || 'An unexpected error occurred. Please try again.');
+    } catch (error: unknown) {
+      let message = 'An unexpected error occurred. Please try again.';
+      if (error instanceof Error) {
+        message = error.message;
+      } else if (typeof error === 'object' && error && 'message' in error) {
+        message = String((error as any).message);
+      }
+      setFormError(message);
     }
   };
 
   // If user is authenticated and has admin role, show admin dashboard
-  if (state.isAuthenticated && state.user?.role === 'admin') {
+  // UserRole is defined in zoho.ts as 'production_operator', 'dispatch_coordinator', etc.
+// There is no 'admin', so use the correct admin role from USER_ROLES (likely 'zoho_admin')
+if (state.isAuthenticated && state.user?.role === 'zoho_admin') {
     return <AdminDashboard />;
   }
 

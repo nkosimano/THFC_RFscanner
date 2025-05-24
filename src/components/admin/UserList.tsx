@@ -42,52 +42,6 @@ const UserList: React.FC<UserListProps> = ({ onCreateUser }) => {
     
     fetchUsers();
   }, []);
-  
-  // For demo purposes - simulate users if none are returned from API
-  useEffect(() => {
-    if (!isLoading && users.length === 0 && !error) {
-      // If no users returned from API, show sample data for demonstration
-      const sampleUsers: UserRow[] = [
-        {
-          id: '1',
-          full_name: 'John Smith',
-          email: 'john.smith@example.com',
-          user_code: 'JSMITH',
-          role: 'admin',
-          status: 'active',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          hashed_password: '',
-          last_login_at: null
-        },
-        {
-          id: '2',
-          full_name: 'Sarah Jones',
-          email: 'sarah.jones@example.com',
-          user_code: 'SJONES',
-          role: 'field_worker',
-          status: 'active',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          hashed_password: '',
-          last_login_at: null
-        },
-        {
-          id: '3',
-          full_name: 'Mike Wilson',
-          email: 'mike.wilson@example.com',
-          user_code: 'MWILSON',
-          role: 'field_worker',
-          status: 'inactive',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          hashed_password: '',
-          last_login_at: null
-        }
-      ];
-      setUsers(sampleUsers);
-    }
-  }, [isLoading, users.length, error]);
 
   // Filtered and searched users
   const filteredUsers = users.filter(user => {

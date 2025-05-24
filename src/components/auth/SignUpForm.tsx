@@ -6,7 +6,7 @@ const SignUpForm: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [role, setRole] = useState<'field_worker' | 'admin'>('field_worker');
+  const [role, setRole] = useState<'production_operator' | 'dispatch_coordinator' | 'csi_field_worker' | 'thfc_production_operator' | 'zoho_admin'>('csi_field_worker');
   const [formError, setFormError] = useState('');
   const [success, setSuccess] = useState('');
   const { signUp, state } = useAuth();
@@ -45,10 +45,16 @@ const SignUpForm: React.FC = () => {
       setEmail('');
       setPassword('');
       setFullName('');
-      setRole('field_worker');
-    } catch (error: any) {
+      setRole('csi_field_worker');
+    } catch (error: unknown) {
       console.error('Sign up error:', error);
-      setFormError(error?.message || 'An unexpected error occurred. Please try again.');
+      let message = 'An unexpected error occurred. Please try again.';
+      if (error instanceof Error) {
+        message = error.message;
+      } else if (typeof error === 'object' && error && 'message' in error) {
+        message = String((error as any).message);
+      }
+      setFormError(message);
     }
   };
 
@@ -99,11 +105,14 @@ const SignUpForm: React.FC = () => {
           <select
             id="signup-role"
             value={role}
-            onChange={e => setRole(e.target.value as 'field_worker' | 'admin')}
+            onChange={e => setRole(e.target.value as 'production_operator' | 'dispatch_coordinator' | 'csi_field_worker' | 'thfc_production_operator' | 'zoho_admin')}
             className="border rounded px-3 py-2"
           >
-            <option value="field_worker">Field Worker</option>
-            <option value="admin">Admin</option>
+            <option value="production_operator">Production Operator</option>
+            <option value="dispatch_coordinator">Dispatch Coordinator</option>
+            <option value="csi_field_worker">CSI Field Worker</option>
+            <option value="thfc_production_operator">THFC Production Operator</option>
+            <option value="zoho_admin">Zoho Admin</option>
           </select>
         </div>
         {(state.error || formError) && (

@@ -55,9 +55,19 @@ const FieldWorkerLoginForm: React.FC = () => {
     }
   };
 
-  // If user is authenticated and has field_worker role, show field worker dashboard
-  if (state.isAuthenticated && state.user?.role === 'field_worker') {
-    return <FieldWorkerDashboard />;
+  // If user is authenticated, show appropriate dashboard based on role
+  if (state.isAuthenticated && state.user) {
+    const userRole = state.user.role;
+    // Show different dashboards based on role
+    if (['production_operator', 'csi_field_worker', 'thfc_production_operator'].includes(userRole)) {
+      return <FieldWorkerDashboard />;
+    } else if (userRole === 'dispatch_coordinator') {
+      // For now, use the same dashboard but in the future you'll have a specialized one
+      return <FieldWorkerDashboard />;
+    } else if (userRole === 'zoho_admin') {
+      // For now, use the same dashboard but in the future you'll have a specialized one
+      return <FieldWorkerDashboard />;
+    }
   }
 
   return (

@@ -1,0 +1,138 @@
+service: thfc-scan-api
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  stage: ${opt:stage, 'dev'}
+  region: ${opt:region, 'us-east-1'}
+  timeout: 30
+  memorySize: 512
+  environment:
+    NODE_ENV: ${self:provider.stage}
+    # Zoho Inventory API credentials
+    ZOHO_INVENTORY_CLIENT_ID: ${ssm:/thfc/zoho/client-id~true}
+    ZOHO_INVENTORY_CLIENT_SECRET: ${ssm:/thfc/zoho/client-secret~true}
+    ZOHO_INVENTORY_ORGANIZATION_ID: ${ssm:/thfc/zoho/organization-id~true}
+    ZOHO_REFRESH_TOKEN: ${ssm:/thfc/zoho/refresh-token~true}
+  httpApi:
+    cors: true
+
+functions:
+  submitCrateDataToZoho:
+    handler: lambda/submitCrateDataToZohoFunction/index.handler
+    events:
+      - httpApi:
+          path: /submitCrateDataToZoho
+          method: POST
+          cors: true
+      - httpApi:
+          path: /submitCrateDataToZoho
+          method: OPTIONS
+          cors: true
+
+  fetchCrateDetails:
+    handler: lambda/fetchCrateDetailsFunction/index.handler
+    events:
+      - httpApi:
+          path: /fetchCrateDetails
+          method: GET
+          cors: true
+      - httpApi:
+          path: /fetchCrateDetails
+          method: POST
+          cors: true
+      - httpApi:
+          path: /fetchCrateDetails
+          method: OPTIONS
+          cors: true
+          
+  createCrateInZoho:
+    handler: lambda/createCrateInZohoFunction/index.handler
+    events:
+      - httpApi:
+          path: /createCrateInZoho
+          method: POST
+          cors: true
+      - httpApi:
+          path: /createCrateInZoho
+          method: OPTIONS
+          cors: true
+          
+  createDispatchOrder:
+    handler: lambda/dispatchOrderFunction/createDispatchOrder.handler
+    events:
+      - httpApi:
+          path: /createDispatchOrder
+          method: POST
+          cors: true
+      - httpApi:
+          path: /createDispatchOrder
+          method: OPTIONS
+          cors: true
+          
+  finalizeDispatchOrder:
+    handler: lambda/dispatchOrderFunction/finalizeDispatchOrder.handler
+    events:
+      - httpApi:
+          path: /finalizeDispatchOrder
+          method: POST
+          cors: true
+      - httpApi:
+          path: /finalizeDispatchOrder
+          method: OPTIONS
+          cors: true
+          
+  getDispatchOrder:
+    handler: lambda/dispatchOrderFunction/getDispatchOrder.handler
+    events:
+      - httpApi:
+          path: /getDispatchOrder
+          method: GET
+          cors: true
+      - httpApi:
+          path: /getDispatchOrder
+          method: OPTIONS
+          cors: true
+          
+  createDonationBatch:
+    handler: lambda/donationFunction/createDonationBatch.handler
+    events:
+      - httpApi:
+          path: /createDonationBatch
+          method: POST
+          cors: true
+      - httpApi:
+          path: /createDonationBatch
+          method: OPTIONS
+          cors: true
+          
+  calculateCSITarget:
+    handler: lambda/donationFunction/calculateCSITarget.handler
+    events:
+      - httpApi:
+          path: /calculateCSITarget
+          method: GET
+          cors: true
+      - httpApi:
+          path: /calculateCSITarget
+          method: OPTIONS
+          cors: true
+          
+  generateDonationReport:
+    handler: lambda/reportFunction/generateDonationReport.handler
+    events:
+      - httpApi:
+          path: /generateDonationReport
+          method: GET
+          cors: true
+      - httpApi:
+          path: /generateDonationReport
+          method: OPTIONS
+          cors: true
+
+resources:
+  Resources:
+    # Add any additional AWS resources if needed
+    # DynamoDB tables, S3 buckets, etc.

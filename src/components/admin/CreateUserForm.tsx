@@ -15,10 +15,10 @@ const CreateUserForm: React.FC<CreateUserFormProps> = ({ onCancel, onSuccess }) 
   const [formData, setFormData] = useState<Omit<UserInsert, 'id' | 'created_at' | 'updated_at' | 'last_login_at' | 'status' | 'hashed_password'> & { password: string }>({
     full_name: '',
     email: '',
-    user_code: '',
+
     role: 'field_worker',
     password: ''
-  }); // user_code can be kept for tracking, but login is now email/password
+  }); // location field removed
   
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -53,15 +53,10 @@ const CreateUserForm: React.FC<CreateUserFormProps> = ({ onCancel, onSuccess }) 
       newErrors.email = 'Valid email address is required';
     }
     
-    // Validate user code
-    if (!formData.user_code.trim()) {
-      newErrors.user_code = 'User code is required';
-    } else if (formData.user_code.length < 3) {
-      newErrors.user_code = 'User code must be at least 3 characters';
-    }
+
     
     // If you want to validate a short code, add a custom field to your Supabase schema and type. Otherwise, remove this validation.
-    
+    // (location validation removed)
     // Validate role
     if (!formData.role) {
       newErrors.role = 'Role is required';
@@ -193,39 +188,7 @@ const CreateUserForm: React.FC<CreateUserFormProps> = ({ onCancel, onSuccess }) 
             />
             {errors.password && <div className={styles.error}>{errors.password}</div>}
           </div>
-          <div className={styles.formGroup}>
-            <label htmlFor="user_code" className={styles.label}>
-              User Code <span className={styles.required}>*</span>
-            </label>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
-              <input
-                id="user_code"
-                name="user_code"
-                type="text"
-                className={styles.input}
-                value={formData.user_code}
-                onChange={handleChange}
-                placeholder="e.g. JSMITH"
-                required
-                disabled={isSubmitting}
-                style={{ flex: 1 }}
-              />
-              <button
-                type="button"
-                className={styles.cancelButton}
-                onClick={suggestUserCode}
-                disabled={isSubmitting}
-                title="Suggest User Code"
-                style={{ padding: '0.375rem', width: 'auto' }}
-              >
-                <User size={16} />
-              </button>
-            </div>
-            {errors.user_code && <div className={styles.error}>{errors.user_code}</div>}
-            <div className={styles.hint}>Used for login - unique identifier for this user</div>
-          </div>
-          
-
+          {/* location field removed */}
           
           <div className={styles.formGroup}>
             <label htmlFor="role" className={styles.label}>

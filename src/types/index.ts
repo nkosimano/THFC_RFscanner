@@ -1,12 +1,13 @@
 import { Session } from '@supabase/supabase-js';
+// Import UserRole type for user roles
+
 
 export interface User {
   id: string;
   fullName: string;
   email: string;
-  userCode: string;
 
-  role: 'field_worker' | 'admin';
+  role: import('./zoho').UserRole; // Supports all user roles
   isActive: boolean;
   createdAt: string;
   updatedAt: string;

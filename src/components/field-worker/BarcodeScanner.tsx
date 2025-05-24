@@ -1,35 +1,51 @@
-import React, { useState, useRef } from 'react';
-import { Camera, Save, X, Truck, Plus, Minus } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Camera, Save, X, Plus, Minus } from 'lucide-react';
 import { submitCrateData } from '../../services/api';
+import {
+  saveCrateScanWithFallback,
+  getPendingScansWithFallback,
+  syncPendingScans,
+  setSyncCallback
+} from '../../services/offlineDataService';
 import { useAuth } from '../../contexts/AuthContext';
 import styles from './BarcodeScanner.module.css';
+import { useOrderBatch } from '../../contexts/OrderBatchContext';
 
 // For demo purposes - in production, use actual values from a database
 const DEFAULT_BREAD_QUANTITY = 24;
 
-const LOCAL_QUEUE_KEY = 'thfc_crate_queue';
-const LOCAL_HISTORY_KEY = 'thfc_crate_history';
+// const LOCAL_QUEUE_KEY = 'thfc_crate_queue';
+// const LOCAL_HISTORY_KEY = 'thfc_crate_history';
 
-interface CrateHistoryItem {
-  crateId: string;
-  actualBreadQuantity: number;
-  defaultBreadQuantity: number;
-  status: 'sent' | 'pending' | 'failed';
-  timestamp: number;
-  error?: string;
-}
+import type { CrateScan } from '../../services/offlineDataService';
 
 const BarcodeScanner: React.FC = () => {
+  const {
+    activeOrderBatch,
+    assignCrateToBatch
+  } = useOrderBatch();
+  const { state: authState } = useAuth();
+  const userRole = authState.user?.role;
   const [crateId, setCrateId] = useState('');
   const [actualQuantity, setActualQuantity] = useState(DEFAULT_BREAD_QUANTITY);
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
-  const [scanHistory, setScanHistory] = useState<CrateHistoryItem[]>([]);
+  const [scanHistory, setScanHistory] = useState<CrateScan[]>([]);
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
   
-  useAuth(); // Only for auth context side effects, not using state
   const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Permission helpers
+  const canScanDispatch = activeOrderBatch && activeOrderBatch.type === 'dispatch' && activeOrderBatch.status === 'open' && (userRole === 'production_operator' || userRole === 'dispatch_coordinator');
+  const canScanDonation = activeOrderBatch && activeOrderBatch.type === 'donation' && activeOrderBatch.status === 'open' && (userRole === 'csi_field_worker' || userRole === 'thfc_production_operator' || userRole === 'zoho_admin');
+  const canScan = Boolean(canScanDispatch || canScanDonation);
+  let scanSource: string | undefined = undefined;
+  if (activeOrderBatch && activeOrderBatch.type === 'donation') {
+    if (userRole === 'csi_field_worker') scanSource = 'Uplifted';
+    else if (userRole === 'thfc_production_operator') scanSource = 'THFC-Baked';
+    else if (userRole === 'zoho_admin') scanSource = 'Zoho-Admin';
+  }
   
   // Function to simulate starting the camera
   const startCamera = async () => {
@@ -75,62 +91,27 @@ const BarcodeScanner: React.FC = () => {
     }
   };
   
-  // Helper: Save queue to localStorage
-  const saveQueue = (queue: CrateHistoryItem[]) => {
-    localStorage.setItem(LOCAL_QUEUE_KEY, JSON.stringify(queue));
-  };
-  // Helper: Load queue from localStorage
-  const loadQueue = (): CrateHistoryItem[] => {
-    try {
-      return JSON.parse(localStorage.getItem(LOCAL_QUEUE_KEY) || '[]');
-    } catch {
-      return [];
-    }
-  };
-  // Helper: Save history to localStorage
-  const saveHistory = (history: CrateHistoryItem[]) => {
-    localStorage.setItem(LOCAL_HISTORY_KEY, JSON.stringify(history));
-  };
-  // Helper: Load history from localStorage
-  const loadHistory = (): CrateHistoryItem[] => {
-    try {
-      return JSON.parse(localStorage.getItem(LOCAL_HISTORY_KEY) || '[]');
-    } catch {
-      return [];
-    }
-  };
+  // Offline scan queue/history logic is now handled by offlineDataService
 
-  // Try to submit all queued crates
+  // Sync pending scans using offlineDataService
   const tryResubmitQueue = async () => {
-    let queue = loadQueue();
-    let updatedQueue: CrateHistoryItem[] = [];
-    let updatedHistory = loadHistory();
-    for (const item of queue) {
-      try {
-
-        const response = await submitCrateData({
-          crate_id_input: item.crateId,
-          bread_quantity: item.actualBreadQuantity
-        });
-        if (response.success) {
-          updatedHistory.unshift({ ...item, status: 'sent', timestamp: Date.now() });
-        } else {
-          updatedQueue.push({ ...item, status: 'failed', error: response.error, timestamp: Date.now() });
-          updatedHistory.unshift({ ...item, status: 'failed', error: response.error, timestamp: Date.now() });
-        }
-      } catch (error: any) {
-        updatedQueue.push({ ...item, status: 'pending', error: error?.message, timestamp: Date.now() });
-        updatedHistory.unshift({ ...item, status: 'pending', error: error?.message, timestamp: Date.now() });
-      }
-    }
-    saveQueue(updatedQueue);
-    saveHistory(updatedHistory.slice(0, 20)); // Keep last 20
-    setScanHistory(updatedHistory.slice(0, 20));
+    await syncPendingScans(async (scan) => {
+      // Map scan to API payload
+      const response = await submitCrateData(scan.payload);
+      if (!response.success) throw new Error(response.error || 'Failed to sync');
+    });
+    loadPendingScans();
   };
+
 
   // On mount: load history and queue, and try to resubmit if online
-  React.useEffect(() => {
-    setScanHistory(loadHistory());
+  useEffect(() => {
+    // Load pending scans from offlineDataService
+    const fetchScans = async () => {
+      const scans = await getPendingScansWithFallback();
+      setScanHistory(scans);
+    };
+    fetchScans();
     if (navigator.onLine) {
       tryResubmitQueue();
     }
@@ -139,82 +120,83 @@ const BarcodeScanner: React.FC = () => {
       setIsOnline(true);
       tryResubmitQueue();
     };
-    const handleOffline = () => setIsOnline(false);
+    const handleOffline = () => {
+      setIsOnline(false);
+    };
+    // Register sync callback for offlineDataService
+    setSyncCallback(() => {
+      tryResubmitQueue();
+    });
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-    // eslint-disable-next-line
   }, []);
 
   // Function to submit crate data
   const handleSubmit = async () => {
-    if (!crateId.trim()) {
-      setNotification({
-        type: 'error',
-        message: 'Please scan or enter a crate ID'
-      });
+    if (!crateId.trim() || isSubmitting) return;
+    if (!canScan) {
+      setNotification({ type: 'error', message: 'You do not have permission to scan into this batch/order.' });
       return;
     }
-    
     setIsSubmitting(true);
-    
-    try {
 
-      const response = await submitCrateData({
-        crate_id_input: crateId,
-        bread_quantity: actualQuantity
-      });
-      let history = loadHistory();
-      if (response.success) {
-        setNotification({
-          type: 'success',
-          message: 'Crate data submitted successfully'
-        });
-        history.unshift({ crateId, actualBreadQuantity: actualQuantity, defaultBreadQuantity: DEFAULT_BREAD_QUANTITY, status: 'sent', timestamp: Date.now() });
-        saveHistory(history.slice(0, 20));
-        setScanHistory(history.slice(0, 20));
-        resetForm();
-      } else {
-        setNotification({
-          type: 'error',
-          message: response.error || 'Failed to submit crate data'
-        });
-        // Save to queue for retry
-        let queue = loadQueue();
-        queue.push({ crateId, actualBreadQuantity: actualQuantity, defaultBreadQuantity: DEFAULT_BREAD_QUANTITY, status: 'pending', timestamp: Date.now(), error: response.error });
-        saveQueue(queue);
-        history.unshift({ crateId, actualBreadQuantity: actualQuantity, defaultBreadQuantity: DEFAULT_BREAD_QUANTITY, status: 'pending', timestamp: Date.now(), error: response.error });
-        saveHistory(history.slice(0, 20));
-        setScanHistory(history.slice(0, 20));
+    // Build payload
+    const payload: any = {
+      crate_id_input: crateId.trim(),
+      bread_quantity: actualQuantity
+    };
+    if (activeOrderBatch) {
+      if (activeOrderBatch.type === 'dispatch') {
+        payload.dispatch_order_ref = activeOrderBatch.reference;
+      } else if (activeOrderBatch.type === 'donation') {
+        payload.donation_batch_ref = activeOrderBatch.reference;
+        if (scanSource) payload.source = scanSource;
       }
-    } catch (error: any) {
-      setNotification({
-        type: 'error',
-        message: 'Network error. Saved for retry.'
+    }
+
+    try {
+      await saveCrateScanWithFallback({
+        id: `${crateId.trim()}-${Date.now()}`,
+        crateId: crateId.trim(),
+        breadQuantity: actualQuantity,
+        payload,
+        createdAt: new Date().toISOString(),
+        synced: false,
+        isOfflineScan: true
       });
-      // Save to queue for retry
-      let queue = loadQueue();
-      queue.push({ crateId, actualBreadQuantity: actualQuantity, defaultBreadQuantity: DEFAULT_BREAD_QUANTITY, status: 'pending', timestamp: Date.now(), error: error?.message });
-      saveQueue(queue);
-      let history = loadHistory();
-      history.unshift({ crateId, actualBreadQuantity: actualQuantity, defaultBreadQuantity: DEFAULT_BREAD_QUANTITY, status: 'pending', timestamp: Date.now(), error: error?.message });
-      saveHistory(history.slice(0, 20));
-      setScanHistory(history.slice(0, 20));
+      assignCrateToBatch(crateId.trim());
+      setNotification({ type: 'success', message: 'Crate queued for sync!' });
+      setCrateId('');
+      setActualQuantity(DEFAULT_BREAD_QUANTITY);
+      loadPendingScans();
+    } catch (err: any) {
+      setNotification({ type: 'error', message: err.message || 'Failed to queue crate.' });
     } finally {
       setIsSubmitting(false);
     }
   };
-  
+
+  // Function to load pending scans
+  const loadPendingScans = async () => {
+    try {
+      const pendingScans = await getPendingScansWithFallback();
+      setScanHistory(pendingScans);
+    } catch (err: any) {
+      setNotification({ type: 'error', message: err.message || 'Failed to load pending scans.' });
+    }
+  };
+
   // Function to reset the form
   const resetForm = () => {
     setCrateId('');
     setActualQuantity(DEFAULT_BREAD_QUANTITY);
     setIsCameraActive(false);
   };
-  
+
   return (
     <div className={styles.scannerContainer}>
       {notification && (
@@ -230,7 +212,6 @@ const BarcodeScanner: React.FC = () => {
           <div className={styles.viewfinderPlaceholder}>
             {crateId ? (
               <div>
-                <Truck size={48} color="#93C5FD" />
                 <p>Crate ID: {crateId}</p>
               </div>
             ) : (
@@ -309,7 +290,8 @@ const BarcodeScanner: React.FC = () => {
       <button 
         className={styles.submitButton}
         onClick={handleSubmit}
-        disabled={!crateId.trim() || isSubmitting}
+        disabled={!crateId.trim() || isSubmitting || !canScan}
+        title={!canScan ? 'You do not have permission to scan into this batch/order.' : ''}
       >
         {isSubmitting ? (
           <>
@@ -323,6 +305,11 @@ const BarcodeScanner: React.FC = () => {
           </>
         )}
       </button>
+      {!canScan && (
+        <div style={{color:'#b91c1c', fontSize:12, marginTop:4}}>
+          You do not have permission to scan into this batch/order or it is closed.
+        </div>
+      )}
       
       <button 
         className={styles.clearButton}
@@ -332,50 +319,41 @@ const BarcodeScanner: React.FC = () => {
         <X size={18} style={{ marginRight: '4px', verticalAlign: 'text-bottom' }} />
         Clear Form
       </button>
-    {/* Scan History UI */}
+    {/* Pending Scans UI */}
     <div className={styles.historySection} style={{marginTop: '2rem'}}>
-      <h3 style={{marginBottom: '0.5rem'}}>Scan History</h3>
+      <h3 style={{marginBottom: '0.5rem'}}>Pending/Offline Scans</h3>
       <ul style={{listStyle: 'none', padding: 0, maxHeight: 200, overflowY: 'auto'}}>
         {scanHistory.length === 0 && <li style={{color:'#888'}}>No scans yet.</li>}
         {scanHistory.map((item, idx) => (
-          <li key={idx} style={{marginBottom: 6, color: item.status==='sent' ? 'green' : item.status==='failed' ? 'red' : 'orange', display: 'flex', alignItems: 'center'}}>
+          <li key={idx} style={{marginBottom: 6, color: item.synced ? 'green' : item.error ? 'red' : 'orange', display: 'flex', alignItems: 'center'}}>
             <div style={{flex:1}}>
-              <b>{item.crateId}</b> | Qty: {item.actualBreadQuantity} | <span style={{textTransform:'capitalize'}}>{item.status}</span>
+              <b>{item.crateId}</b> | Qty: {item.breadQuantity} | <span style={{textTransform:'capitalize'}}>{item.synced ? 'sent' : item.error ? 'error' : 'pending'}</span>
               {item.error && <span style={{color:'#b91c1c'}}> ({item.error})</span>}
-              <span style={{fontSize:12, color:'#888', marginLeft:8}}>{new Date(item.timestamp).toLocaleTimeString()}</span>
+              <span style={{fontSize:12, color:'#888', marginLeft:8}}>{item.createdAt ? new Date(item.createdAt).toLocaleTimeString() : ''}</span>
             </div>
-            {(item.status === 'failed' || item.status === 'pending') && (
+            {item.error && !item.synced && (
               <button
                 style={{marginLeft:8, fontSize:12, padding:'2px 8px', borderRadius:4, border:'1px solid #ccc', background:'#f3f4f6', cursor:'pointer'}}
-                onClick={async () => {
-                  // Remove from queue/history first
-                  let queue = loadQueue().filter(q => !(q.crateId === item.crateId && q.timestamp === item.timestamp));
-                  saveQueue(queue);
-                  let history = loadHistory().filter(h => !(h.crateId === item.crateId && h.timestamp === item.timestamp));
-                  // Try to resubmit
-                  try {
-                    const response = await submitCrateData({
-                      crate_id_input: item.crateId,
-                      bread_quantity: item.actualBreadQuantity
-                    });
-                    if (response.success) {
-                      history.unshift({ ...item, status: 'sent', error: undefined, timestamp: Date.now() });
-                      setNotification({ type: 'success', message: 'Crate data resubmitted successfully' });
-                    } else {
-                      queue.push({ ...item, status: 'failed', error: response.error, timestamp: Date.now() });
-                      history.unshift({ ...item, status: 'failed', error: response.error, timestamp: Date.now() });
-                      setNotification({ type: 'error', message: response.error || 'Failed to resubmit crate data' });
-                    }
-                  } catch (error: any) {
-                    queue.push({ ...item, status: 'pending', error: error?.message, timestamp: Date.now() });
-                    history.unshift({ ...item, status: 'pending', error: error?.message, timestamp: Date.now() });
-                    setNotification({ type: 'error', message: 'Network error. Still queued.' });
-                  }
-                  saveQueue(queue);
-                  saveHistory(history.slice(0, 20));
-                  setScanHistory(history.slice(0, 20));
-                }}
                 disabled={isSubmitting}
+                onClick={async () => {
+                  setIsSubmitting(true);
+                  try {
+                    const response = await submitCrateData(item.payload);
+                    if (response.success) {
+                      setNotification({ type: 'success', message: 'Scan resubmitted successfully!' });
+                      // Mark as synced in offline queue
+                      await import('../../services/offlineDataService').then(svc => svc.markScanAsSyncedWithFallback(item.id));
+                    } else {
+                      setNotification({ type: 'error', message: response.error || 'Failed to resubmit scan.' });
+                    }
+                  } catch (err: any) {
+                    setNotification({ type: 'error', message: err?.message || 'Network error.' });
+                  }
+                  setIsSubmitting(false);
+                  // Refresh scan history
+                  const scans = await getPendingScansWithFallback();
+                  setScanHistory(scans);
+                }}
               >Retry</button>
             )}
           </li>
