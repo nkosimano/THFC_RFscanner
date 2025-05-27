@@ -47,8 +47,6 @@ const AdminLoginForm: React.FC = () => {
       setFormError('Password is required');
       return;
     }
-    // Password validation completed successfully
-
     try {
       await login(email, password);
     } catch (error: unknown) {
@@ -59,6 +57,10 @@ const AdminLoginForm: React.FC = () => {
         message = String((error as any).message);
       }
       setFormError(message);
+    }
+    // Always reset loading state if login fails (if not handled in useAuth)
+    if (state.isLoading) {
+      // Optionally, you can call a setLoading(false) if available in your auth context
     }
   };
 
@@ -109,9 +111,14 @@ if (state.isAuthenticated && state.user?.role === 'zoho_admin') {
           type="submit" 
           className={`${state.isLoading ? 'bg-blue-500' : 'bg-blue-600 hover:bg-blue-700'} text-white rounded px-4 py-2 mt-4 w-full transition`} 
           disabled={state.isLoading}
+          aria-busy={state.isLoading}
+          aria-disabled={state.isLoading}
         >
-          {state.isLoading ? 'Logging in...' : 'Login'}
+          Login
         </button>
+        {state.isLoading && (
+          <div className="text-gray-500 text-sm mt-2">Logging in...</div>
+        )}
       </form>
     </div>
   );

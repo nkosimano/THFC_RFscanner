@@ -53,9 +53,15 @@ export async function saveCrateScan(scan: CrateScan) {
 
 export async function getPendingScans(): Promise<CrateScan[]> {
   const db = await getDB();
-  // Use 'any' to avoid TS error due to index typing
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (db as any).getAllFromIndex('crateScans', 'by-synced', IDBKeyRange.only(false));
+  try {
+    // IndexedDB doesn't consistently handle boolean values as keys
+    // Use 0 for false and 1 for true as numerical equivalents for indexing
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (db as any).getAllFromIndex('crateScans', 'by-synced', IDBKeyRange.only(0));
+  } catch (error) {
+    console.error('Error fetching pending scans:', error);
+    return [];
+  }
 }
 
 export async function markScanAsSynced(id: string) {

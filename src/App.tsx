@@ -9,6 +9,8 @@ import DispatchPage from './pages/DispatchPage';
 import RequireAuth from './components/auth/RequireAuth';
 
 const AdminCrateManagementPage = lazy(() => import('./pages/AdminCrateManagementPage'));
+const AdminActivityLogsPage = lazy(() => import('./pages/AdminActivityLogsPage'));
+const AdminSystemSettingsPage = lazy(() => import('./pages/AdminSystemSettingsPage'));
 
 function App() {
   return (
@@ -43,6 +45,20 @@ function App() {
             <RequireAuth>
               <Suspense fallback={null}>
                 <AdminCrateManagementPage />
+              </Suspense>
+            </RequireAuth>
+          } />
+          <Route path="/admin/logs" element={
+            <RequireAuth>
+              <Suspense fallback={null}>
+                <AdminActivityLogsPage />
+              </Suspense>
+            </RequireAuth>
+          } />
+          <Route path="/admin/settings" element={
+            <RequireAuth>
+              <Suspense fallback={null}>
+                <AdminSystemSettingsPage />
               </Suspense>
             </RequireAuth>
           } />

@@ -96,7 +96,11 @@ export const createCrateInZoho = async (crateData: CreateCrateData): Promise<Sub
       throw new Error('Not authenticated');
     }
 
-    const response = await fetch(`${API_BASE_URL}/createCrateInZoho`, {
+    // Ensure we have a valid API URL without the 'admin/undefined' segment
+    const endpoint = '/api/createCrateInZoho';
+    const apiUrl = API_BASE_URL.endsWith('/') ? `${API_BASE_URL.slice(0, -1)}${endpoint}` : `${API_BASE_URL}${endpoint}`;
+    
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

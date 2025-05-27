@@ -33,11 +33,11 @@ const AdminDashboard: React.FC = () => {
             <Package size={18} />
             <span>Crate QR/Labels</span>
           </Link>
-          <Link to="/admin" className={styles.quickLinkButton}>
+          <Link to="/admin/logs" className={styles.quickLinkButton}>
             <ClipboardList size={18} />
             <span>Activity Logs</span>
           </Link>
-          <Link to="/admin" className={styles.quickLinkButton}>
+          <Link to="/admin/settings" className={styles.quickLinkButton}>
             <Settings size={18} />
             <span>System Settings</span>
           </Link>

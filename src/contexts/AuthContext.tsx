@@ -93,12 +93,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string) => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      setState(prev => ({ ...prev, isLoading: false, error: error.message }));
-      throw error;
+    let timeoutId: NodeJS.Timeout | null = null;
+    try {
+      // Fallback: reset loading state after 10 seconds if not already reset
+      timeoutId = setTimeout(() => {
+        setState(prev => ({ ...prev, isLoading: false, error: 'Login timed out. Please try again.' }));
+      }, 10000);
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        setState(prev => ({ ...prev, isLoading: false, error: error.message }));
+        throw error;
+      }
+      // onAuthStateChange will handle the success state.
+    } catch (err: any) {
+      setState(prev => ({ ...prev, isLoading: false, error: err?.message || 'An unexpected error occurred.' }));
+      throw err;
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
     }
-    // onAuthStateChange will handle the success state.
   };
 
   const signUp = async (email: string, password: string, userData: { fullName: string; role: User['role'] }) => {
