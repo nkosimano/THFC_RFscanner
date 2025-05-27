@@ -5,6 +5,7 @@ import LoginPage from './pages/LoginPage';
 import FieldWorkerPage from './pages/FieldWorkerPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import AdminUserPage from './pages/AdminUserPage';
+import DispatchPage from './pages/DispatchPage';
 import RequireAuth from './components/auth/RequireAuth';
 
 const AdminCrateManagementPage = lazy(() => import('./pages/AdminCrateManagementPage'));
@@ -18,6 +19,11 @@ function App() {
           <Route path="/" element={<LoginPage />} />
 
           {/* Protected routes: require authentication */}
+          <Route path="/dispatch" element={
+            <RequireAuth>
+              <DispatchPage />
+            </RequireAuth>
+          } />
           <Route path="/field-worker" element={
             <RequireAuth>
               <FieldWorkerPage />

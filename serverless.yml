@@ -120,6 +120,18 @@ functions:
           method: OPTIONS
           cors: true
           
+  createProductionOrder:
+    handler: lambda/donationFunction/createProductionOrder.handler
+    events:
+      - httpApi:
+          path: /createProductionOrder
+          method: POST
+          cors: true
+      - httpApi:
+          path: /createProductionOrder
+          method: OPTIONS
+          cors: true
+          
   generateDonationReport:
     handler: lambda/reportFunction/generateDonationReport.handler
     events:
@@ -129,6 +141,30 @@ functions:
           cors: true
       - httpApi:
           path: /generateDonationReport
+          method: OPTIONS
+          cors: true
+          
+  authenticateUser:
+    handler: lambda/userManagement/userAuth.authenticateUser
+    events:
+      - httpApi:
+          path: /authenticateUser
+          method: POST
+          cors: true
+      - httpApi:
+          path: /authenticateUser
+          method: OPTIONS
+          cors: true
+          
+  createUser:
+    handler: lambda/userManagement/userAuth.createUser
+    events:
+      - httpApi:
+          path: /createUser
+          method: POST
+          cors: true
+      - httpApi:
+          path: /createUser
           method: OPTIONS
           cors: true
 
