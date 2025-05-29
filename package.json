@@ -4,10 +4,10 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host",
     "build": "tsc && vite build",
     "lint": "eslint . --max-warnings 0",
-    "preview": "vite preview",
+    "preview": "vite preview --host",
     "cypress:open": "cypress open",
     "cypress:run": "cypress run",
     "test": "cypress run --component",
@@ -26,6 +26,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.0.2",
     "@eslint/js": "^9.27.0",
+    "@types/node": "^22.15.24",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
     "@typescript-eslint/eslint-plugin": "^8.4.0",

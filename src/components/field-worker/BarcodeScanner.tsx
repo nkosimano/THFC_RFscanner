@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Camera, Save, X, Plus, Minus } from 'lucide-react';
+import { playBeep } from '../../utils/soundUtils';
 import { submitCrateData } from '../../services/api';
 import {
   saveCrateScanWithFallback,
@@ -59,6 +60,9 @@ const BarcodeScanner: React.FC = () => {
       setCrateId(fakeCrateId);
       setIsCameraActive(false);
       
+      // Play beep sound to confirm scan
+      playBeep(800, 200, 0.5);
+      
       // Show success notification
       setNotification({
         type: 'success',
@@ -72,7 +76,13 @@ const BarcodeScanner: React.FC = () => {
   
   // Function to handle manual input of crate ID
   const handleCrateIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setCrateId(e.target.value);
+    const newValue = e.target.value;
+    setCrateId(newValue);
+    
+    // Play beep when a barcode is entered (assuming barcodes end with Enter)
+    if (newValue.includes('\n') || newValue.includes('\r')) {
+      playBeep(800, 200, 0.5);
+    }
   };
   
   // Functions to handle quantity changes
