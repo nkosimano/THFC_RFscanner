@@ -1,7 +1,6 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { resolve } from 'path';
-import { fileURLToPath } from 'node:url';
+import path from 'path';
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -19,12 +18,13 @@ export default defineConfig({
   publicDir: 'public',
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url)),
+      '@': path.resolve(__dirname, './src'),
     },
   },
   optimizeDeps: {
     exclude: ['lucide-react'],
     esbuildOptions: {
+      target: 'esnext',
       // Node.js global to browser globalThis
       define: {
         global: 'globalThis',
@@ -36,9 +36,10 @@ export default defineConfig({
     assetsDir: 'assets',
     emptyOutDir: true,
     sourcemap: true,
+    target: 'esnext',
     rollupOptions: {
       input: {
-        main: resolve(__dirname, 'index.html'),
+        main: path.resolve(__dirname, 'index.html'),
       },
       output: {
         manualChunks: {

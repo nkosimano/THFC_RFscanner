@@ -1,74 +1,20 @@
-import { Suspense, lazy } from 'react';
-import { BrowserRouter, Route, Routes, Navigate } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
-import LoginPage from './pages/LoginPage';
-import FieldWorkerPage from './pages/FieldWorkerPage';
-import AdminDashboardPage from './pages/AdminDashboardPage';
-import AdminUserPage from './pages/AdminUserPage';
-import DispatchPage from './pages/DispatchPage';
-import RequireAuth from './components/auth/RequireAuth';
+import { routes } from './routes';
 
-const AdminCrateManagementPage = lazy(() => import('./pages/AdminCrateManagementPage'));
-const AdminActivityLogsPage = lazy(() => import('./pages/AdminActivityLogsPage'));
-const AdminSystemSettingsPage = lazy(() => import('./pages/AdminSystemSettingsPage'));
-
+// Create router after AuthProvider is initialized
 function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          {/* Public route: login/landing page */}
-          <Route path="/" element={<LoginPage />} />
-
-          {/* Protected routes: require authentication */}
-          <Route path="/dispatch" element={
-            <RequireAuth>
-              <DispatchPage />
-            </RequireAuth>
-          } />
-          <Route path="/field-worker" element={
-            <RequireAuth>
-              <FieldWorkerPage />
-            </RequireAuth>
-          } />
-          <Route path="/admin" element={
-            <RequireAuth>
-              <AdminDashboardPage />
-            </RequireAuth>
-          } />
-          <Route path="/admin/users" element={
-            <RequireAuth>
-              <AdminUserPage />
-            </RequireAuth>
-          } />
-          <Route path="/admin/crates" element={
-            <RequireAuth>
-              <Suspense fallback={null}>
-                <AdminCrateManagementPage />
-              </Suspense>
-            </RequireAuth>
-          } />
-          <Route path="/admin/logs" element={
-            <RequireAuth>
-              <Suspense fallback={null}>
-                <AdminActivityLogsPage />
-              </Suspense>
-            </RequireAuth>
-          } />
-          <Route path="/admin/settings" element={
-            <RequireAuth>
-              <Suspense fallback={null}>
-                <AdminSystemSettingsPage />
-              </Suspense>
-            </RequireAuth>
-          } />
-
-          {/* Fallback route */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </BrowserRouter>
+      <AppRoutes />
     </AuthProvider>
   );
+}
+
+// Separate component for routes to ensure AuthProvider is initialized first
+function AppRoutes() {
+  const router = createBrowserRouter(routes);
+  return <RouterProvider router={router} />;
 }
 
 export default App;

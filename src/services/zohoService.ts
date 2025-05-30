@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { IDBPDatabase, openDB } from 'idb';
+import { supabase } from '../lib/supabase.js';
 
 // Types
 interface DispatchOrder {
@@ -24,15 +25,10 @@ interface CrateScan {
 
 class ZohoService {
   private db: IDBPDatabase | null = null;
-  private supabase: any;
   private static instance: ZohoService;
 
   private constructor() {
     this.initDB();
-    this.supabase = createClient(
-      import.meta.env.VITE_SUPABASE_URL || '',
-      import.meta.env.VITE_SUPABASE_ANON_KEY || ''
-    );
   }
 
   public static getInstance(): ZohoService {
@@ -154,6 +150,12 @@ class ZohoService {
     localStorage.setItem('zoho_token', JSON.stringify(tokenData));
     return data.access_token;
   }
+
+  // Use the shared supabase instance in your methods
+  async someMethod() {
+    return await supabase.from('your_table').select();
+  }
 }
 
 export const zohoService = ZohoService.getInstance();
+export type { ZohoService };

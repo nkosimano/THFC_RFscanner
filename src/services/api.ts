@@ -1,5 +1,5 @@
 import type { Database } from '../types/supabase';
-import { supabase } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
 
 // Base URL for all API requests
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL as string;

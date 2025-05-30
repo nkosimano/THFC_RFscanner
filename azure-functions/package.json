@@ -1,18 +1,26 @@
 {
-  "name": "azure-functions",
+  "name": "thfc-scan-api-functions",
   "version": "1.0.0",
-  "main": "index.js",
+  "description": "THFC Scanner API Azure Functions",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "func start",
+    "test": "jest"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
   "dependencies": {
-    "@azure/functions": "^4.7.2",
+    "@azure/functions": "^3.5.1",
     "axios": "^1.9.0",
     "dotenv": "^16.5.0",
-    "uuid": "^11.1.0"
+    "jsonwebtoken": "^9.0.0",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "jest": "^29.5.0",
+    "@types/jest": "^29.5.0",
+    "@types/node": "^18.15.11",
+    "@types/jsonwebtoken": "^9.0.0"
   }
 }
