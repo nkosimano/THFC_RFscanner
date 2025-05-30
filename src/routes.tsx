@@ -5,7 +5,6 @@ import FieldWorkerPage from './pages/FieldWorkerPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 import AdminUserPage from './pages/AdminUserPage';
 import DispatchPage from './pages/DispatchPage';
-import RequireAuth from './components/auth/RequireAuth';
 
 const AdminCrateManagementPage = lazy(() => import('./pages/AdminCrateManagementPage'));
 const AdminActivityLogsPage = lazy(() => import('./pages/AdminActivityLogsPage'));
@@ -23,68 +22,6 @@ export const routes = [
       {
         path: '/',
         element: <LoginPage />
-      },
-      {
-        path: '/dispatch',
-        element: (
-          <RequireAuth>
-            <DispatchPage />
-          </RequireAuth>
-        )
-      },
-      {
-        path: '/field-worker',
-        element: (
-          <RequireAuth>
-            <FieldWorkerPage />
-          </RequireAuth>
-        )
-      },
-      {
-        path: '/admin',
-        element: (
-          <RequireAuth>
-            <AdminDashboardPage />
-          </RequireAuth>
-        )
-      },
-      {
-        path: '/admin/users',
-        element: (
-          <RequireAuth>
-            <AdminUserPage />
-          </RequireAuth>
-        )
-      },
-      {
-        path: '/admin/crates',
-        element: (
-          <RequireAuth>
-            <Suspense fallback={null}>
-              <AdminCrateManagementPage />
-            </Suspense>
-          </RequireAuth>
-        )
-      },
-      {
-        path: '/admin/logs',
-        element: (
-          <RequireAuth>
-            <Suspense fallback={null}>
-              <AdminActivityLogsPage />
-            </Suspense>
-          </RequireAuth>
-        )
-      },
-      {
-        path: '/admin/settings',
-        element: (
-          <RequireAuth>
-            <Suspense fallback={null}>
-              <AdminSystemSettingsPage />
-            </Suspense>
-          </RequireAuth>
-        )
       },
       {
         path: '*',

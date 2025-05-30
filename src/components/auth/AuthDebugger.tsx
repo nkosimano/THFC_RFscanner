@@ -33,16 +33,34 @@ const AuthDebugger: React.FC = () => {
   const checkSupabaseConnection = async () => {
     setLoading(true);
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 seconds
       const start = Date.now();
-      const { data, error } = await supabase.from('users').select('count').limit(1);
+      // Use fetch to call the Supabase REST endpoint directly for timeout support
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      const response = await fetch(`${supabaseUrl}/rest/v1/users?select=count&limit=1`, {
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+        },
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
       const end = Date.now();
-      
+      let error: string | undefined = undefined;
+      let data = null;
+      if (!response.ok) {
+        error = `HTTP ${response.status}: ${response.statusText}`;
+      } else {
+        data = await response.json();
+      }
       setDebugInfo((prev: DebugInfo | null) => ({
         ...prev,
         connection: {
           status: error ? 'error' : 'success',
           latency: end - start,
-          error: error?.message,
+          error: error,
           data: data
         }
       }));
